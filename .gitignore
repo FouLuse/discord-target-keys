@@ -1,0 +1,8 @@
+# Never commit your real config — it contains your bot token
+config.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

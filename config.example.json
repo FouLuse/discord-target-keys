@@ -1,0 +1,6 @@
+{
+  "bot_token": "YOUR_BOT_TOKEN_HERE",
+  "guild_id": "YOUR_SERVER_ID_HERE",
+  "target_user_id": "",
+  "target_handle": ""
+}
