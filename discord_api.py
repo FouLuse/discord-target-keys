@@ -39,6 +39,7 @@ DEFAULT_CONFIG = {
     "guild_id": "",
     "target_user_id": "",
     "target_handle": "",
+    "hotkey": "Ctrl+Alt+B",
 }
 
 

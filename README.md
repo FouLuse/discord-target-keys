@@ -38,9 +38,15 @@ This is the only slightly fiddly part, and the app has a **First-time setup** bu
 
 Now whenever you click **BAN TARGET NOW**, that person is banned. To change the target later, just type a new username and resolve again.
 
-## Optional: ban with a keyboard shortcut
+## Hotkey, system tray, and starting with Windows
 
-If you'd rather ban with a single keypress instead of opening the app, you can bind a hotkey. This is an optional power-user step — the app's button works fine on its own. Ask in the repo's Issues if you want a walkthrough.
+The app is built to run quietly in the background:
+
+- **System tray** — closing the window doesn't quit the app; it tucks it into the system tray (next to the clock). Right-click the tray icon for **Open settings**, **Ban now**, **Start with Windows**, and **Quit**. (Quit is the only thing that fully stops it.)
+- **Ban hotkey** — press **Ctrl+Alt+B** (the default) anywhere to instantly ban your target, even when the window is closed. No popup, no confirmation — that's the point. Change the combo with the **Change…** button under "Background & hotkey".
+- **Start with Windows** — tick the **Start with Windows** checkbox (or the tray menu item) and the app launches into the tray automatically each time you log in, so the hotkey is always ready. Untick it to stop.
+
+> Because the hotkey bans instantly with no confirmation, pick a combo you won't hit by accident. If you ever ban the wrong person, you can unban them from Discord's **Server Settings → Bans**.
 
 ## Notes & safety
 

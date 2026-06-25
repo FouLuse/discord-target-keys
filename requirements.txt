@@ -1,1 +1,4 @@
 requests>=2.25
+# Windows tray icon (only needed for the packaged app / tray + hotkey features)
+pystray>=0.19; sys_platform == "win32"
+Pillow>=9.0; sys_platform == "win32"
