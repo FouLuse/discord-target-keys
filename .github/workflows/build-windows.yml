@@ -1,0 +1,56 @@
+name: Build Windows app
+
+# Builds the GUI into a single double-click .exe on a Windows machine in
+# the cloud, then attaches it to your GitHub Release automatically.
+#
+# How to get a downloadable .exe:
+#   1. On GitHub, go to the "Releases" section (right side of the repo page).
+#   2. Click "Draft a new release".
+#   3. Under "Choose a tag", type a version like v1.0 and click "Create new tag".
+#   4. Give it a title, then click "Publish release".
+#   5. Wait ~2-3 minutes. Refresh the release page — DiscordBanScript.exe
+#      will appear as a downloadable file.
+#
+# You can also run it manually from the "Actions" tab (Run workflow) to get a
+# test build without publishing a release.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller requests
+
+      - name: Build the .exe
+        run: pyinstaller --onefile --windowed --name DiscordBanScript ban_gui.py
+
+      - name: Attach .exe to the release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/DiscordBanScript.exe
+
+      - name: Save .exe as a test artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiscordBanScript
+          path: dist/DiscordBanScript.exe

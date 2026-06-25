@@ -7,11 +7,32 @@ permission is required.
 
 import json
 import os
+import sys
 
 import requests
 
 API = "https://discord.com/api/v10"
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+
+
+def _config_dir():
+    """Where config.json lives.
+
+    When packaged as a standalone .exe (PyInstaller sets sys.frozen), the
+    script runs from a temporary folder that is wiped on exit, so settings
+    are stored in a stable per-user location (%APPDATA% on Windows, the
+    home folder elsewhere). In normal development it sits next to the code.
+    """
+    if getattr(sys, "frozen", False):
+        base = (os.environ.get("APPDATA")
+                or os.environ.get("XDG_CONFIG_HOME")
+                or os.path.expanduser("~"))
+        path = os.path.join(base, "DiscordBanScript")
+        os.makedirs(path, exist_ok=True)
+        return path
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+CONFIG_PATH = os.path.join(_config_dir(), "config.json")
 
 DEFAULT_CONFIG = {
     "bot_token": "",

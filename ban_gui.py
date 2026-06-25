@@ -10,9 +10,31 @@ Run with:  python ban_gui.py
 
 import threading
 import tkinter as tk
+import webbrowser
 from tkinter import messagebox, ttk
 
 from discord_api import ban_user, load_config, resolve_handle, save_config
+
+SETUP_STEPS = (
+    "First-time setup (about 5 minutes, one time only):\n\n"
+    "1. Create your bot\n"
+    "   - Click 'Open Discord Developer Portal' below.\n"
+    "   - Click 'New Application', give it any name, then open the 'Bot' tab.\n"
+    "   - Click 'Reset Token', then 'Copy'. Paste that into 'Bot token'.\n"
+    "   - On the same page, turn ON 'Server Members Intent'.\n\n"
+    "2. Add the bot to your server\n"
+    "   - Open the 'OAuth2 > URL Generator' tab.\n"
+    "   - Tick 'bot', then tick 'Ban Members'.\n"
+    "   - Copy the link at the bottom, open it, and add the bot to your server.\n"
+    "   - In Server Settings > Roles, drag the bot's role ABOVE the people\n"
+    "     you want to be able to ban.\n\n"
+    "3. Get your Server ID\n"
+    "   - In Discord: User Settings > Advanced > turn on 'Developer Mode'.\n"
+    "   - Right-click your server icon > 'Copy Server ID'. Paste it above.\n\n"
+    "4. Set your target\n"
+    "   - Type the person's Discord username in 'Target handle'.\n"
+    "   - Click 'Resolve & Save target'. Done."
+)
 
 
 class BanApp(tk.Tk):
@@ -52,8 +74,12 @@ class BanApp(tk.Tk):
         ttk.Label(frm, textvariable=self.id_var, foreground="#555").grid(
             row=3, column=1, columnspan=2, sticky="w", **pad)
 
+        ttk.Button(frm, text="First-time setup — need help getting these?",
+                   command=self.show_help).grid(
+            row=4, column=0, columnspan=3, sticky="ew", padx=10, pady=(2, 8))
+
         btns = ttk.Frame(frm)
-        btns.grid(row=4, column=0, columnspan=3, pady=(10, 4))
+        btns.grid(row=5, column=0, columnspan=3, pady=(6, 4))
         ttk.Button(btns, text="Resolve & Save target",
                    command=self.resolve_and_save).grid(row=0, column=0, padx=6)
         ttk.Button(btns, text="Save settings only",
@@ -63,20 +89,39 @@ class BanApp(tk.Tk):
             frm, text="BAN TARGET NOW", command=self.do_ban,
             bg="#c0392b", fg="white", font=("Helvetica", 13, "bold"),
             activebackground="#a83224", activeforeground="white", height=2)
-        self.ban_btn.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(12, 4))
+        self.ban_btn.grid(row=6, column=0, columnspan=3, sticky="ew", pady=(12, 4))
 
         self.status = tk.StringVar(value="Ready.")
         ttk.Label(frm, textvariable=self.status, foreground="#2c3e50").grid(
-            row=6, column=0, columnspan=3, sticky="w", **pad)
+            row=7, column=0, columnspan=3, sticky="w", **pad)
 
-        note = ("Tip: bind your hotkey to run  ban.py  for one-press banning.\n"
+        note = ("New here? Click 'First-time setup' above.\n"
                 "The handle is resolved to an ID so renames don't break it.")
         ttk.Label(frm, text=note, foreground="#888",
-                  justify="left").grid(row=7, column=0, columnspan=3,
+                  justify="left").grid(row=8, column=0, columnspan=3,
                                        sticky="w", padx=10, pady=(2, 0))
 
     def _toggle_token(self):
         self.token_entry.config(show="" if self.show_var.get() else "•")
+
+    def show_help(self):
+        win = tk.Toplevel(self)
+        win.title("First-time setup")
+        win.resizable(False, False)
+        win.transient(self)
+        frm = ttk.Frame(win)
+        frm.grid(row=0, column=0, padx=14, pady=14)
+        txt = tk.Text(frm, width=64, height=22, wrap="word",
+                      borderwidth=0, background=self.cget("background"))
+        txt.insert("1.0", SETUP_STEPS)
+        txt.config(state="disabled")
+        txt.grid(row=0, column=0, columnspan=2, pady=(0, 10))
+        ttk.Button(frm, text="Open Discord Developer Portal",
+                   command=lambda: webbrowser.open(
+                       "https://discord.com/developers/applications")).grid(
+            row=1, column=0, padx=4, sticky="w")
+        ttk.Button(frm, text="Close", command=win.destroy).grid(
+            row=1, column=1, padx=4, sticky="e")
 
     def _collect(self):
         self.cfg["bot_token"] = self.token_var.get().strip()

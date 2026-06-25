@@ -1,91 +1,75 @@
 # Discord Ban Script
 
-Ban one pre-set user from your Discord server with a single hotkey press.
-A small GUI lets you set (and change) the target by their Discord handle.
+A tiny Windows app that bans one pre-set person from your Discord server with a single click. No coding, no setup tools — just download, paste in a token, and you're done.
 
-## What's included
+## Download (for most people)
 
-- `ban.py` — the one-press ban. Bind a hotkey to this. No prompts.
-- `ban_gui.py` — settings window: set token, server, and target handle; also has a manual **BAN TARGET NOW** button.
-- `discord_api.py` — shared Discord API helpers (no extra bot framework needed).
-- `config.json` — saved settings (created/updated automatically).
+1. Go to the **[Releases](../../releases)** page (or the "Releases" link on the right of this page).
+2. Under the latest release, click **DiscordBanScript.exe** to download it.
+3. Double-click the downloaded file to open the app.
 
-## One-time setup
+> **Windows may show a blue "Windows protected your PC" warning.** This is normal for small free apps that aren't signed by a big company — it doesn't mean anything is wrong. Click **More info**, then **Run anyway**.
 
-### 1. Install Python and the one dependency
+That's it for installing. The first time you open it, follow the in-app **"First-time setup"** button, which walks you through the steps below.
 
-You need Python 3.8+. Then install `requests`:
+## First-time setup (about 5 minutes, once)
 
-```
-pip install requests
-```
+This is the only slightly fiddly part, and the app has a **First-time setup** button that guides you through it with a link to the right page. Here it is in writing too:
 
-(`tkinter`, used by the GUI, ships with most Python installs. On Debian/Ubuntu: `sudo apt install python3-tk`.)
+### 1. Create your bot and get a token
+- In the app, click **First-time setup → Open Discord Developer Portal** (or go to https://discord.com/developers/applications).
+- Click **New Application**, name it anything, then open the **Bot** tab.
+- Click **Reset Token**, then **Copy**. Paste it into the app's **Bot token** box.
+- On the same page, turn on **Server Members Intent**.
 
-### 2. Create a Discord bot
+### 2. Add the bot to your server
+- Open the **OAuth2 → URL Generator** tab.
+- Tick **bot**, then tick **Ban Members**.
+- Copy the link at the bottom, open it in your browser, and add the bot to your server.
+- In **Server Settings → Roles**, drag the bot's role **above** the people you want to be able to ban. (A bot can't ban someone whose role sits above its own.)
 
-1. Go to https://discord.com/developers/applications and click **New Application**.
-2. Open the **Bot** tab → **Add Bot**.
-3. Click **Reset Token**, then **Copy** the token. Keep it secret — anyone with it controls the bot.
-4. On the same Bot page, scroll to **Privileged Gateway Intents** and turn on **Server Members Intent** (this lets the bot look up a user by handle).
+### 3. Get your Server ID
+- In Discord: **User Settings → Advanced → Developer Mode** → turn **on**.
+- Right-click your server's icon → **Copy Server ID**. Paste it into the app.
 
-### 3. Invite the bot to your server with ban permission
+### 4. Pick who gets banned
+- Type the person's Discord username into **Target handle**.
+- Click **Resolve & Save target**. The app looks them up and remembers them.
 
-1. Go to **OAuth2 → URL Generator**.
-2. Under **Scopes** check `bot`.
-3. Under **Bot Permissions** check **Ban Members**.
-4. Copy the generated URL at the bottom, open it in your browser, and add the bot to your server.
+Now whenever you click **BAN TARGET NOW**, that person is banned. To change the target later, just type a new username and resolve again.
 
-> Important: in **Server Settings → Roles**, drag the bot's role **above** the roles of anyone you want to ban. A bot can't ban someone whose highest role is above its own.
+## Optional: ban with a keyboard shortcut
 
-### 4. Get your Server (Guild) ID
-
-1. In Discord: **User Settings → Advanced → Developer Mode** → turn **on**.
-2. Right-click your server's icon → **Copy Server ID**.
-
-### 5. Configure the target
-
-Run the GUI:
-
-```
-python ban_gui.py
-```
-
-Paste in the **bot token** and **server ID**, type the **target handle** (e.g. `someuser`), then click **Resolve & Save target**. It looks the user up, saves their stable ID, and you're set. You can re-open this anytime to change the target.
-
-> You can also paste a raw numeric user ID into the handle field if you already have it.
-
-## Binding the hotkey
-
-The hotkey just needs to run `python ban.py`. Use the full path to both Python and the script. A success/failure desktop notification pops up after each press.
-
-### Windows
-- Easiest: install [AutoHotkey](https://www.autohotkey.com/) and create a script:
-  ```ahk
-  ^!b::Run, pythonw "C:\path\to\ban.py"
-  ```
-  (`Ctrl+Alt+B` here — change as you like.)
-- Or right-click `ban.py` → create a shortcut → Properties → set a **Shortcut key**.
-
-### macOS
-- Open **Automator** → new **Quick Action** → add **Run Shell Script**:
-  ```
-  /usr/bin/python3 "/path/to/ban.py"
-  ```
-  Save it, then in **System Settings → Keyboard → Keyboard Shortcuts → Services**, assign a shortcut to it.
-- Or use a tool like Raycast/BetterTouchTool to bind a key to that command.
-
-### Linux
-- Add a custom keyboard shortcut in your desktop settings with the command:
-  ```
-  python3 /path/to/ban.py
-  ```
-
-### Stream Deck / macro keys / other input devices
-Set the button's action to "Run program / Open" and point it at the same `python ban.py` command above.
+If you'd rather ban with a single keypress instead of opening the app, you can bind a hotkey. This is an optional power-user step — the app's button works fine on its own. Ask in the repo's Issues if you want a walkthrough.
 
 ## Notes & safety
 
-- Bans are immediate and bypass the confirmation dialog when triggered via `ban.py` — that's the point of a one-press button. Use the GUI's button if you want a confirm prompt.
-- Keep `config.json` private; it holds your bot token.
-- If a ban fails, the notification shows why. The most common cause is the bot's role sitting below the target's role — fix the role order (step 3).
+- Your bot token is saved only on your own computer (in your Windows user folder), never uploaded anywhere.
+- Keep your bot token private — anyone who has it can control your bot.
+- If a ban fails, the app tells you why. The most common reason is the bot's role sitting below the target's role — fix the role order in step 2.
+
+---
+
+## For developers / building it yourself
+
+The app is a small Python program; the downloadable `.exe` is built automatically by GitHub Actions on a Windows runner — see `.github/workflows/build-windows.yml`.
+
+Files:
+- `ban_gui.py` — the GUI (this is what gets packaged into the `.exe`).
+- `ban.py` — headless instant-ban script for binding to a hotkey.
+- `discord_api.py` — shared Discord REST API helpers (ban + handle lookup).
+- `config.example.json` — template config; the real `config.json` is gitignored.
+
+Run from source:
+```
+pip install -r requirements.txt
+python ban_gui.py
+```
+
+Build a `.exe` yourself (on Windows):
+```
+pip install pyinstaller requests
+pyinstaller --onefile --windowed --name DiscordBanScript ban_gui.py
+```
+
+Publish a new downloadable build: on GitHub, **Draft a new release**, create a tag like `v1.0`, and **Publish**. The workflow builds `DiscordBanScript.exe` and attaches it to that release automatically.
