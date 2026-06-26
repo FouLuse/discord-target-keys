@@ -95,6 +95,8 @@ pip install -r requirements.txt
 python ban_gui.py
 ```
 
+Tests: `python run_tests.py` runs fast smoke tests (no display or Windows needed). These also run automatically on every push via `.github/workflows/ci.yml`. The recommended flow is: push → CI goes green → use the **Actions** tab to run "Build Windows app" manually and test the resulting artifact → only then draft a release.
+
 Build a `.exe` yourself (on Windows):
 ```
 pip install pyinstaller requests pystray pillow

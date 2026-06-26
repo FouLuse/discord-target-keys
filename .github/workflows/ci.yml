@@ -1,0 +1,31 @@
+name: CI
+
+# Fast safety net: on every push and pull request, check that the code
+# compiles and the smoke tests pass. This catches typos, broken imports,
+# and logic regressions in seconds — before you ever build or release.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Compile all scripts
+        run: python -m py_compile discord_api.py ban.py ban_gui.py
+
+      - name: Run smoke tests
+        run: python run_tests.py
