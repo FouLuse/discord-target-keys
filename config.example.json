@@ -3,5 +3,10 @@
   "guild_id": "YOUR_SERVER_ID_HERE",
   "target_user_id": "",
   "target_handle": "",
-  "hotkey": "Ctrl+Alt+B"
+  "binds": {
+    "ban": "Ctrl+Alt+B",
+    "kick": "",
+    "mute": "",
+    "deafen": ""
+  }
 }

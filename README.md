@@ -1,11 +1,11 @@
-# Discord Ban Script
+# Discord Target Keys
 
-A tiny Windows app that bans one pre-set person from your Discord server with a single click. No coding, no setup tools — just download, paste in a token, and you're done.
+A tiny Windows app that lets you **ban, kick, mute, or deafen** a pre-set person on your Discord server with a keyboard shortcut — bound like a game keybind. You pick one target, bind your keys, and moderate them from anywhere. No coding, no setup tools — just download, paste in a token, and pick your keys.
 
 ## Download (for most people)
 
 1. Go to the **[Releases](../../releases)** page (or the "Releases" link on the right of this page).
-2. Under the latest release, click **DiscordBanScript.exe** to download it.
+2. Under the latest release, click **DiscordTargetKeys.exe** to download it.
 3. Double-click the downloaded file to open the app.
 
 > **Windows may show a blue "Windows protected your PC" warning.** This is normal for small free apps that aren't signed by a big company — it doesn't mean anything is wrong. Click **More info**, then **Run anyway**.
@@ -14,7 +14,7 @@ That's it for installing. The first time you open it, follow the in-app **"First
 
 ## First-time setup (about 5 minutes, once)
 
-This is the only slightly fiddly part, and the app has a **First-time setup** button that guides you through it with a link to the right page. Here it is in writing too:
+The app has a **First-time setup** button that guides you through this with a link to the right page. Here it is in writing too:
 
 ### 1. Create your bot and get a token
 - In the app, click **First-time setup → Open Discord Developer Portal** (or go to https://discord.com/developers/applications).
@@ -24,35 +24,47 @@ This is the only slightly fiddly part, and the app has a **First-time setup** bu
 
 ### 2. Add the bot to your server
 - Open the **OAuth2 → URL Generator** tab.
-- Tick **bot**, then tick **Ban Members**.
+- Tick **bot**, then tick the permissions for the actions you want: **Ban Members**, **Kick Members**, **Mute Members**, **Deafen Members**.
 - Copy the link at the bottom, open it in your browser, and add the bot to your server.
-- In **Server Settings → Roles**, drag the bot's role **above** the people you want to be able to ban. (A bot can't ban someone whose role sits above its own.)
+- In **Server Settings → Roles**, drag the bot's role **above** the people you want to moderate. (A bot can't ban/kick someone whose role sits above its own.)
 
 ### 3. Get your Server ID
 - In Discord: **User Settings → Advanced → Developer Mode** → turn **on**.
 - Right-click your server's icon → **Copy Server ID**. Paste it into the app.
 
-### 4. Pick who gets banned
-- Type the person's Discord username into **Target handle**.
-- Click **Resolve & Save target**. The app looks them up and remembers them.
+### 4. Pick your target and bind your keys
+- Type the person's Discord username into **Target handle**, then click **Resolve & Save target**.
+- In the **Actions & hotkeys** table, click **Change bind** next to Ban / Kick / Mute / Deafen and press any key or combination — just like binding a key in a game. Press **Esc** to cancel or **Backspace** to clear a bind.
 
-Now whenever you click **BAN TARGET NOW**, that person is banned. To change the target later, just type a new username and resolve again.
+To change the target later, just type a new username and resolve again.
 
-## Hotkey, system tray, and starting with Windows
+## The four actions
 
-The app is built to run quietly in the background:
+| Action | What it does | Needs permission |
+| --- | --- | --- |
+| **Ban** | Removes and blocks them from rejoining | Ban Members |
+| **Kick** | Removes them (they can rejoin via invite) | Kick Members |
+| **Mute** | Server-mutes them in voice (toggles on/off) | Mute Members |
+| **Deafen** | Server-deafens them in voice (toggles on/off) | Deafen Members |
 
-- **System tray** — closing the window doesn't quit the app; it tucks it into the system tray (next to the clock). Right-click the tray icon for **Open settings**, **Ban now**, **Start with Windows**, and **Quit**. (Quit is the only thing that fully stops it.)
-- **Ban hotkey** — press **Ctrl+Alt+B** (the default) anywhere to instantly ban your target, even when the window is closed. No popup, no confirmation — that's the point. Change the combo with the **Change…** button under "Background & hotkey".
-- **Start with Windows** — tick the **Start with Windows** checkbox (or the tray menu item) and the app launches into the tray automatically each time you log in, so the hotkey is always ready. Untick it to stop.
+> **Mute and Deafen only work while the target is actually in a voice channel.** If they're not connected, the app tells you so and nothing changes.
 
-> Because the hotkey bans instantly with no confirmation, pick a combo you won't hit by accident. If you ever ban the wrong person, you can unban them from Discord's **Server Settings → Bans**.
+## Hotkeys, system tray, and starting with Windows
+
+The app runs quietly in the background:
+
+- **Bind like a game** — click **Change bind**, then press your key or combo. Each action gets its own hotkey, and they fire from anywhere — even with the window closed.
+- **Instant, no confirmation** — a hotkey runs immediately (that's the point). The on-screen **Run now** buttons ask for confirmation on Ban/Kick if you'd rather click.
+- **System tray** — closing the window tucks the app into the tray (next to the clock). Right-click for **Open settings**, **Start with Windows**, and **Quit**. (Quit is the only thing that fully stops it.)
+- **Start with Windows** — tick the checkbox (or tray item) and the app launches into the tray each time you log in, so your binds are always ready.
+
+> Hotkeys fire instantly with no confirmation, so pick combos you won't hit by accident. If you ban or kick the wrong person, you can undo it from Discord's **Server Settings → Bans** (or just re-invite a kicked user).
 
 ## Notes & safety
 
 - Your bot token is saved only on your own computer (in your Windows user folder), never uploaded anywhere.
 - Keep your bot token private — anyone who has it can control your bot.
-- If a ban fails, the app tells you why. The most common reason is the bot's role sitting below the target's role — fix the role order in step 2.
+- If an action fails, the app tells you why. The most common reasons are the bot's role sitting below the target's role, a missing permission, or (for mute/deafen) the target not being in voice.
 
 ---
 
@@ -61,9 +73,9 @@ The app is built to run quietly in the background:
 The app is a small Python program; the downloadable `.exe` is built automatically by GitHub Actions on a Windows runner — see `.github/workflows/build-windows.yml`.
 
 Files:
-- `ban_gui.py` — the GUI (this is what gets packaged into the `.exe`).
-- `ban.py` — headless instant-ban script for binding to a hotkey.
-- `discord_api.py` — shared Discord REST API helpers (ban + handle lookup).
+- `ban_gui.py` — the GUI and tray/hotkey app (this is what gets packaged into the `.exe`).
+- `ban.py` — small headless ban script (legacy; bans the saved target when run).
+- `discord_api.py` — Discord REST API helpers (ban, kick, mute, deafen, handle lookup).
 - `config.example.json` — template config; the real `config.json` is gitignored.
 
 Run from source:
@@ -74,8 +86,8 @@ python ban_gui.py
 
 Build a `.exe` yourself (on Windows):
 ```
-pip install pyinstaller requests
-pyinstaller --onefile --windowed --name DiscordBanScript ban_gui.py
+pip install pyinstaller requests pystray pillow
+pyinstaller --onefile --windowed --name DiscordTargetKeys --hidden-import=pystray._win32 ban_gui.py
 ```
 
-Publish a new downloadable build: on GitHub, **Draft a new release**, create a tag like `v1.0`, and **Publish**. The workflow builds `DiscordBanScript.exe` and attaches it to that release automatically.
+Publish a new downloadable build: on GitHub, **Draft a new release**, create a tag like `v0.3.0`, and **Publish**. The workflow builds `DiscordTargetKeys.exe` and attaches it to that release automatically.

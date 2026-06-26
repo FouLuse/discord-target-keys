@@ -26,7 +26,7 @@ def _config_dir():
         base = (os.environ.get("APPDATA")
                 or os.environ.get("XDG_CONFIG_HOME")
                 or os.path.expanduser("~"))
-        path = os.path.join(base, "DiscordBanScript")
+        path = os.path.join(base, "DiscordTargetKeys")
         os.makedirs(path, exist_ok=True)
         return path
     return os.path.dirname(os.path.abspath(__file__))
@@ -39,7 +39,12 @@ DEFAULT_CONFIG = {
     "guild_id": "",
     "target_user_id": "",
     "target_handle": "",
-    "hotkey": "Ctrl+Alt+B",
+    "binds": {
+        "ban": "Ctrl+Alt+B",
+        "kick": "",
+        "mute": "",
+        "deafen": "",
+    },
 }
 
 
@@ -64,7 +69,7 @@ def _headers(token):
     return {
         "Authorization": f"Bot {token}",
         "Content-Type": "application/json",
-        "User-Agent": "DiscordBanScript (https://example.com, 1.0)",
+        "User-Agent": "DiscordTargetKeys (https://example.com, 1.0)",
     }
 
 
@@ -122,7 +127,7 @@ def resolve_handle(token, guild_id, handle):
     return user_id, label
 
 
-def ban_user(token, guild_id, user_id, reason="Banned via Discord Ban Script",
+def ban_user(token, guild_id, user_id, reason="Banned via Discord Target Keys",
              delete_message_seconds=0):
     """Ban a user from a guild. Returns a human-readable result string.
 
@@ -150,3 +155,65 @@ def ban_user(token, guild_id, user_id, reason="Banned via Discord Ban Script",
     if resp.status_code == 404:
         raise RuntimeError("Not found (404): check the server ID and user ID.")
     raise RuntimeError(f"Ban failed ({resp.status_code}): {resp.text}")
+
+
+def _raise_member_error(resp, verb, perm):
+    """Translate a failed member request into a friendly RuntimeError."""
+    if resp.status_code == 401:
+        raise RuntimeError("Invalid bot token (401 Unauthorized).")
+    if resp.status_code == 403:
+        raise RuntimeError(
+            f"Forbidden (403): the bot needs the '{perm}' permission and its "
+            "role must be higher than the target's highest role.")
+    if resp.status_code == 404:
+        raise RuntimeError(
+            "Not found (404): the user may not be in this server "
+            "(check the server ID and that they're a member).")
+    raise RuntimeError(f"Could not {verb} ({resp.status_code}): {resp.text}")
+
+
+def kick_user(token, guild_id, user_id, reason="Kicked via Discord Target Keys"):
+    """Remove a member from a guild. Needs the Kick Members permission."""
+    url = f"{API}/guilds/{guild_id}/members/{user_id}"
+    headers = _headers(token)
+    headers["X-Audit-Log-Reason"] = reason[:512]
+    resp = requests.delete(url, headers=headers, timeout=15)
+    if resp.status_code in (200, 204):
+        return f"Kicked user {user_id}."
+    _raise_member_error(resp, "kick", "Kick Members")
+
+
+def get_member(token, guild_id, user_id):
+    """Fetch a guild member object (used to read current mute/deaf state)."""
+    url = f"{API}/guilds/{guild_id}/members/{user_id}"
+    resp = requests.get(url, headers=_headers(token), timeout=15)
+    if resp.status_code == 200:
+        return resp.json()
+    _raise_member_error(resp, "look up the member", "View Members")
+
+
+def modify_member(token, guild_id, user_id, payload, perm,
+                  reason="Updated via Discord Target Keys"):
+    """PATCH a guild member (e.g. {'mute': True} or {'deaf': True})."""
+    url = f"{API}/guilds/{guild_id}/members/{user_id}"
+    headers = _headers(token)
+    headers["X-Audit-Log-Reason"] = reason[:512]
+    resp = requests.patch(url, headers=headers, json=payload, timeout=15)
+    if resp.status_code in (200, 204):
+        return resp.json() if resp.content else {}
+    if resp.status_code == 400 and "voice" in resp.text.lower():
+        raise RuntimeError("Target isn't connected to a voice channel right now.")
+    _raise_member_error(resp, "update the member", perm)
+
+
+def set_mute(token, guild_id, user_id, muted):
+    """Server-mute or unmute a member (must be connected to voice)."""
+    modify_member(token, guild_id, user_id, {"mute": bool(muted)}, "Mute Members")
+    return f"{'Muted' if muted else 'Unmuted'} user {user_id}."
+
+
+def set_deaf(token, guild_id, user_id, deafened):
+    """Server-deafen or undeafen a member (must be connected to voice)."""
+    modify_member(token, guild_id, user_id, {"deaf": bool(deafened)},
+                  "Deafen Members")
+    return f"{'Deafened' if deafened else 'Undeafened'} user {user_id}."
