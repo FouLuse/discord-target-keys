@@ -33,27 +33,34 @@ ACTIONS = {
 }
 
 SETUP_STEPS = (
-    "First-time setup (about 5 minutes, one time only):\n\n"
+    "First-time setup (about 5 minutes, one time):\n\n"
     "1. Create your bot\n"
     "   - Click 'Open Discord Developer Portal' below.\n"
-    "   - Click 'New Application', give it any name, then open the 'Bot' tab.\n"
-    "   - Click 'Reset Token', then 'Copy'. Paste that into 'Bot token'.\n"
-    "   - On the same page, turn ON 'Server Members Intent'.\n\n"
+    "   - Click 'New Application' and give it any name.\n"
+    "   - Open the 'Bot' tab.\n"
+    "   - Click 'Reset Token' > 'Copy', and paste it\n"
+    "     into the 'Bot token' box.\n"
+    "   - Turn ON 'Server Members Intent'.\n\n"
     "2. Add the bot to your server\n"
     "   - Open the 'OAuth2 > URL Generator' tab.\n"
-    "   - Tick 'bot', then tick the permissions you want to use:\n"
-    "       Ban Members, Kick Members, Mute Members, Deafen Members.\n"
-    "   - Copy the link at the bottom, open it, and add the bot to your server.\n"
-    "   - In Server Settings > Roles, drag the bot's role ABOVE the people\n"
-    "     you want to moderate.\n\n"
+    "   - Tick 'bot', then tick the permissions you\n"
+    "     want: Ban / Kick / Mute / Deafen Members.\n"
+    "   - Copy the link at the bottom, open it, and\n"
+    "     add the bot to your server.\n"
+    "   - In Server Settings > Roles, drag the bot's\n"
+    "     role ABOVE the people you want to moderate.\n\n"
     "3. Get your Server ID\n"
-    "   - In Discord: User Settings > Advanced > turn on 'Developer Mode'.\n"
-    "   - Right-click your server icon > 'Copy Server ID'. Paste it above.\n\n"
+    "   - In Discord, turn on User Settings >\n"
+    "     Advanced > Developer Mode.\n"
+    "   - Right-click your server icon > 'Copy Server\n"
+    "     ID' and paste it above.\n\n"
     "4. Set your target and binds\n"
-    "   - Type the person's Discord username in 'Target handle', then\n"
-    "     'Resolve & Save target'.\n"
-    "   - Click 'Change bind' next to an action and press any key combo.\n\n"
-    "Note: Mute and Deafen only work while the target is in a voice channel."
+    "   - Type the username in 'Target handle', then\n"
+    "     click 'Resolve & Save target'.\n"
+    "   - Click 'Change bind' on an action and press\n"
+    "     any key or combination.\n\n"
+    "Mute and Deafen only work while the target is in\n"
+    "a voice channel."
 )
 
 # ----------------------------------------------------------------------------
@@ -67,13 +74,35 @@ MOD_NOREPEAT = 0x4000
 _MOD_ALIASES = {"control": "ctrl", "ctl": "ctrl", "windows": "win",
                 "super": "win", "meta": "win", "cmd": "win"}
 
-# Extra (non letter/digit/function) keys we support for global hotkeys.
-SPECIAL_VK = {
+# Named key -> Windows virtual-key code. Covers punctuation/OEM, numpad,
+# navigation and editing keys. Token names never contain '+' so they stay
+# safe inside the '+'-joined hotkey string.
+NAME_VK = {
+    # navigation / editing
     "SPACE": 0x20, "ENTER": 0x0D, "TAB": 0x09, "BACKSPACE": 0x08,
-    "LEFT": 0x25, "UP": 0x26, "RIGHT": 0x27, "DOWN": 0x28,
     "INSERT": 0x2D, "DELETE": 0x2E, "HOME": 0x24, "END": 0x23,
-    "PAGEUP": 0x21, "PAGEDOWN": 0x22, "PAUSE": 0x13, "PRINTSCREEN": 0x2C,
+    "PAGEUP": 0x21, "PAGEDOWN": 0x22,
+    "LEFT": 0x25, "UP": 0x26, "RIGHT": 0x27, "DOWN": 0x28,
+    "PAUSE": 0x13, "PRINTSCREEN": 0x2C, "SCROLLLOCK": 0x91,
+    "NUMLOCK": 0x90, "CAPSLOCK": 0x14, "APPS": 0x5D,
+    # OEM punctuation (US layout positions)
+    "SEMICOLON": 0xBA, "EQUALS": 0xBB, "COMMA": 0xBC, "MINUS": 0xBD,
+    "PERIOD": 0xBE, "SLASH": 0xBF, "GRAVE": 0xC0,
+    "LBRACKET": 0xDB, "BACKSLASH": 0xDC, "RBRACKET": 0xDD, "QUOTE": 0xDE,
+    # numpad
+    "NUM0": 0x60, "NUM1": 0x61, "NUM2": 0x62, "NUM3": 0x63, "NUM4": 0x64,
+    "NUM5": 0x65, "NUM6": 0x66, "NUM7": 0x67, "NUM8": 0x68, "NUM9": 0x69,
+    "NUMMULTIPLY": 0x6A, "NUMADD": 0x6B, "NUMSUBTRACT": 0x6D,
+    "NUMDECIMAL": 0x6E, "NUMDIVIDE": 0x6F,
 }
+
+# Keys whose bare (no-modifier) use would hijack normal typing.
+_TYPING_NAMES = ({"SPACE", "SEMICOLON", "EQUALS", "COMMA", "MINUS", "PERIOD",
+                  "SLASH", "GRAVE", "LBRACKET", "BACKSLASH", "RBRACKET",
+                  "QUOTE"}
+                 | {f"NUM{i}" for i in range(10)}
+                 | {"NUMMULTIPLY", "NUMADD", "NUMSUBTRACT", "NUMDECIMAL",
+                    "NUMDIVIDE"})
 
 # tkinter keysym -> our modifier name
 _KEYSYM_MODS = {
@@ -83,13 +112,37 @@ _KEYSYM_MODS = {
     "Super_L": "win", "Super_R": "win", "Win_L": "win", "Win_R": "win",
 }
 
-# tkinter keysym -> our normalised key name (for non-printable keys)
-_KEYSYM_KEYS = {
+# tkinter keysym -> our key name. Includes shifted variants of punctuation
+# (e.g. 'colon' and 'semicolon' are the same physical key) and the numpad
+# both with NumLock on and off.
+KEYSYM_NAME = {
     "space": "SPACE", "Return": "ENTER", "Tab": "TAB", "BackSpace": "BACKSPACE",
+    "Insert": "INSERT", "Delete": "DELETE", "Home": "HOME", "End": "END",
+    "Prior": "PAGEUP", "Next": "PAGEDOWN",
     "Left": "LEFT", "Right": "RIGHT", "Up": "UP", "Down": "DOWN",
-    "Prior": "PAGEUP", "Next": "PAGEDOWN", "Home": "HOME", "End": "END",
-    "Insert": "INSERT", "Delete": "DELETE", "Pause": "PAUSE",
-    "Print": "PRINTSCREEN",
+    "Pause": "PAUSE", "Print": "PRINTSCREEN", "Scroll_Lock": "SCROLLLOCK",
+    "Num_Lock": "NUMLOCK", "Caps_Lock": "CAPSLOCK", "Menu": "APPS",
+    "semicolon": "SEMICOLON", "colon": "SEMICOLON",
+    "equal": "EQUALS", "plus": "EQUALS",
+    "comma": "COMMA", "less": "COMMA",
+    "minus": "MINUS", "underscore": "MINUS",
+    "period": "PERIOD", "greater": "PERIOD",
+    "slash": "SLASH", "question": "SLASH",
+    "grave": "GRAVE", "asciitilde": "GRAVE",
+    "bracketleft": "LBRACKET", "braceleft": "LBRACKET",
+    "backslash": "BACKSLASH", "bar": "BACKSLASH",
+    "bracketright": "RBRACKET", "braceright": "RBRACKET",
+    "apostrophe": "QUOTE", "quotedbl": "QUOTE",
+    "KP_0": "NUM0", "KP_1": "NUM1", "KP_2": "NUM2", "KP_3": "NUM3",
+    "KP_4": "NUM4", "KP_5": "NUM5", "KP_6": "NUM6", "KP_7": "NUM7",
+    "KP_8": "NUM8", "KP_9": "NUM9",
+    "KP_Multiply": "NUMMULTIPLY", "KP_Add": "NUMADD",
+    "KP_Subtract": "NUMSUBTRACT", "KP_Decimal": "NUMDECIMAL",
+    "KP_Divide": "NUMDIVIDE", "KP_Enter": "ENTER",
+    "KP_Insert": "NUM0", "KP_End": "NUM1", "KP_Down": "NUM2",
+    "KP_Next": "NUM3", "KP_Left": "NUM4", "KP_Begin": "NUM5",
+    "KP_Right": "NUM6", "KP_Home": "NUM7", "KP_Up": "NUM8",
+    "KP_Prior": "NUM9", "KP_Delete": "NUMDECIMAL",
 }
 
 
@@ -113,31 +166,50 @@ def build_hotkey(mods, key):
 
 
 def hotkey_vk(key):
-    """Virtual-key code for a key name (A-Z, 0-9, F1-F12, or a special)."""
+    """Virtual-key code for a key name.
+
+    Handles A-Z, 0-9, F1-F24, every name in NAME_VK, and a raw 'VK<n>'
+    fallback (so a key with no friendly name can still be registered).
+    """
     key = (key or "").upper()
     if len(key) == 1 and (key.isalpha() or key.isdigit()):
         return ord(key)
     if key.startswith("F") and key[1:].isdigit():
         n = int(key[1:])
-        if 1 <= n <= 12:
+        if 1 <= n <= 24:
             return 0x70 + (n - 1)
-    return SPECIAL_VK.get(key)
+    if key in NAME_VK:
+        return NAME_VK[key]
+    if key.startswith("VK") and key[2:].isdigit():
+        vk = int(key[2:])
+        if 0 < vk <= 0xFF:
+            return vk
+    return None
 
 
 def keysym_to_key(keysym):
     """Map a tkinter keysym to our key name, or None if unsupported."""
-    if keysym in _KEYSYM_KEYS:
-        return _KEYSYM_KEYS[keysym]
+    if keysym in KEYSYM_NAME:
+        return KEYSYM_NAME[keysym]
     if len(keysym) == 1 and (keysym.isalpha() or keysym.isdigit()):
         return keysym.upper()
     if keysym and keysym[0] in "Ff" and keysym[1:].isdigit():
-        return keysym.upper()
+        n = int(keysym[1:])
+        if 1 <= n <= 24:
+            return "F" + str(n)
     return None
 
 
+def is_typing_key(key):
+    """True for keys you'd normally type (letters, digits, punctuation…)."""
+    if len(key) == 1 and (key.isalpha() or key.isdigit()):
+        return True
+    return key.upper() in _TYPING_NAMES
+
+
 def is_bare_printable(mods, key):
-    """A single letter/digit with no modifier would hijack normal typing."""
-    return (not mods) and len(key) == 1 and (key.isalpha() or key.isdigit())
+    """A typing key with no modifier would hijack normal typing globally."""
+    return (not mods) and is_typing_key(key)
 
 
 # ----------------------------------------------------------------------------
@@ -397,12 +469,9 @@ class BanApp(tk.Tk):
         win.resizable(False, False)
         win.transient(self)
         frm = ttk.Frame(win)
-        frm.grid(row=0, column=0, padx=14, pady=14)
-        txt = tk.Text(frm, width=66, height=26, wrap="word",
-                      borderwidth=0, background=self.cget("background"))
-        txt.insert("1.0", SETUP_STEPS)
-        txt.config(state="disabled")
-        txt.grid(row=0, column=0, columnspan=2, pady=(0, 10))
+        frm.grid(row=0, column=0, padx=16, pady=16)
+        ttk.Label(frm, text=SETUP_STEPS, justify="left").grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 12))
         ttk.Button(frm, text="Open Discord Developer Portal",
                    command=lambda: webbrowser.open(
                        "https://discord.com/developers/applications")).grid(
@@ -447,7 +516,12 @@ class BanApp(tk.Tk):
                 return
             key = keysym_to_key(ks)
             if key is None:
-                return
+                # Unknown key name — fall back to its raw virtual-key code so
+                # it can still be bound (numpad/media/extra keys, etc.).
+                vk = getattr(e, "keycode", 0)
+                if not vk:
+                    return
+                key = f"VK{vk}"
             mods = [m for m in MOD_ORDER if m in held]
             if is_bare_printable(mods, key):
                 if not messagebox.askyesno(
