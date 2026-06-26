@@ -4,9 +4,9 @@
   "target_user_id": "",
   "target_handle": "",
   "binds": {
-    "ban": "Ctrl+Alt+B",
-    "kick": "",
-    "mute": "",
-    "deafen": ""
+    "ban": { "label": "Ctrl+Alt+B", "mods": ["ctrl", "alt"], "vk": 66 },
+    "kick": null,
+    "mute": null,
+    "deafen": null
   }
 }

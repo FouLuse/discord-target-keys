@@ -22,7 +22,14 @@ from discord_api import (ban_user, get_member, kick_user, load_config,
 
 IS_WINDOWS = sys.platform.startswith("win")
 APP_NAME = "DiscordTargetKeys"
-DEFAULT_BINDS = {"ban": "Ctrl+Alt+B", "kick": "", "mute": "", "deafen": ""}
+# Each bind is a dict {"label": str, "mods": [..], "vk": int} or None.
+# vk is the real Windows virtual-key code, captured from the key event.
+DEFAULT_BINDS = {
+    "ban": {"label": "Ctrl+Alt+B", "mods": ["ctrl", "alt"], "vk": 0x42},
+    "kick": None,
+    "mute": None,
+    "deafen": None,
+}
 
 # action key -> (display label, hotkey id, confirm-on-manual-click)
 ACTIONS = {
@@ -212,6 +219,22 @@ def is_bare_printable(mods, key):
     return (not mods) and is_typing_key(key)
 
 
+def key_name_from_event(keysym, keycode, char):
+    """Friendly display name for a captured key, or None to ignore it.
+
+    Used only for the label shown to the user; the value actually registered
+    is the raw keycode (the real Windows virtual-key code).
+    """
+    name = keysym_to_key(keysym)
+    if name is not None:
+        return name
+    if char and char.isprintable() and not char.isspace() and char != "+":
+        return char.upper()
+    if keycode:
+        return f"VK{keycode}"
+    return None
+
+
 # ----------------------------------------------------------------------------
 # Auto-start with Windows (HKCU Run key)
 # ----------------------------------------------------------------------------
@@ -271,7 +294,7 @@ class HotkeyManager(threading.Thread):
         super().__init__(daemon=True)
         self.on_trigger = on_trigger
         self.on_status = on_status or (lambda *_: None)
-        self._binds = {}          # id -> (mods, key)
+        self._binds = {}          # id -> (mods, vk)
         self._lock = threading.Lock()
         self._tid = None
 
@@ -292,23 +315,22 @@ class HotkeyManager(threading.Thread):
             user32.UnregisterHotKey(None, i)
         with self._lock:
             binds = dict(self._binds)
-        ok, bad = [], []
-        for hid, (mods, key) in binds.items():
-            vk = hotkey_vk(key)
-            if vk is None:
+        ok = bad = 0
+        for hid, (mods, vk) in binds.items():
+            if not vk:
                 continue
             flags = MOD_NOREPEAT
             for m in mods:
                 flags |= MOD_FLAGS.get(m, 0)
-            if user32.RegisterHotKey(None, hid, flags, vk):
-                ok.append(build_hotkey(mods, key))
+            if user32.RegisterHotKey(None, hid, flags, int(vk)):
+                ok += 1
             else:
-                bad.append(build_hotkey(mods, key))
+                bad += 1
         if bad:
-            self.on_status("Could not register (already in use): "
-                           + ", ".join(bad))
+            self.on_status(f"{ok} hotkey(s) active; {bad} could not be "
+                           "registered (already used by another app).")
         elif ok:
-            self.on_status("Hotkeys active: " + ", ".join(ok))
+            self.on_status(f"{ok} hotkey(s) active.")
         else:
             self.on_status("No hotkeys bound yet.")
 
@@ -359,17 +381,46 @@ class BanApp(tk.Tk):
                 self.withdraw()
 
     # ---- binds model ----
+    @staticmethod
+    def _norm_bind(val):
+        """Normalise a saved bind (dict, legacy string, or empty) -> dict|None."""
+        if not val:
+            return None
+        if isinstance(val, dict):
+            if val.get("vk"):
+                mods = [m for m in MOD_ORDER if m in val.get("mods", [])]
+                return {"label": val.get("label") or build_hotkey(mods, ""),
+                        "mods": mods, "vk": int(val["vk"])}
+            val = val.get("label", "")          # dict without vk -> use label
+        if isinstance(val, str) and val.strip():
+            mods, key = parse_hotkey(val)        # legacy "Ctrl+Alt+B" string
+            vk = hotkey_vk(key)
+            if not vk:
+                return None
+            return {"label": build_hotkey(mods, key), "mods": mods, "vk": vk}
+        return None
+
     def _load_binds(self):
-        binds = dict(DEFAULT_BINDS)
+        binds = {a: (dict(DEFAULT_BINDS[a]) if DEFAULT_BINDS[a] else None)
+                 for a in DEFAULT_BINDS}
         saved = self.cfg.get("binds")
         if isinstance(saved, dict):
-            binds.update({k: saved.get(k, "") for k in DEFAULT_BINDS})
-        elif self.cfg.get("hotkey"):          # migrate v0.2 single hotkey
-            binds["ban"] = self.cfg["hotkey"]
+            for a in DEFAULT_BINDS:
+                if a in saved:
+                    binds[a] = self._norm_bind(saved[a])
+        elif self.cfg.get("hotkey"):             # migrate v0.2 single hotkey
+            binds["ban"] = self._norm_bind(self.cfg["hotkey"])
         return binds
 
     def _binds_for_manager(self):
-        return {ACTIONS[a][1]: parse_hotkey(self.binds[a]) for a in ACTIONS}
+        out = {}
+        for a in ACTIONS:
+            b = self.binds.get(a)
+            if b and b.get("vk"):
+                out[ACTIONS[a][1]] = (b.get("mods", []), int(b["vk"]))
+            else:
+                out[ACTIONS[a][1]] = ([], 0)
+        return out
 
     # ---- UI ----
     def _build(self):
@@ -422,7 +473,8 @@ class BanApp(tk.Tk):
             label = ACTIONS[action][0]
             ttk.Label(tbl, text=label).grid(row=r, column=0, sticky="w",
                                             padx=6, pady=3)
-            var = tk.StringVar(value=self.binds[action] or "(none)")
+            b = self.binds[action]
+            var = tk.StringVar(value=(b["label"] if b else "(none)"))
             self.bind_vars[action] = var
             ttk.Label(tbl, textvariable=var, width=16,
                       font=("Helvetica", 10, "bold")).grid(
@@ -512,25 +564,21 @@ class BanApp(tk.Tk):
                 win.destroy()
                 return
             if ks in ("BackSpace", "Delete") and not held:
-                finish("")
+                finish(None)
                 return
-            key = keysym_to_key(ks)
-            if key is None:
-                # Unknown key name — fall back to its raw virtual-key code so
-                # it can still be bound (numpad/media/extra keys, etc.).
-                vk = getattr(e, "keycode", 0)
-                if not vk:
-                    return
-                key = f"VK{vk}"
+            vk = getattr(e, "keycode", 0)
+            name = key_name_from_event(ks, vk, getattr(e, "char", ""))
+            if name is None or not vk:
+                return
             mods = [m for m in MOD_ORDER if m in held]
-            if is_bare_printable(mods, key):
+            if is_bare_printable(mods, name):
                 if not messagebox.askyesno(
                         "Bare key?",
-                        f"'{key}' has no modifier, so it will be captured "
+                        f"'{name}' has no modifier, so it will be captured "
                         "system-wide and you won't be able to type it normally.\n\n"
                         "Use it anyway?", parent=win):
                     return
-            finish(build_hotkey(mods, key))
+            finish({"label": build_hotkey(mods, name), "mods": mods, "vk": vk})
 
         def on_release(e):
             ks = e.keysym
@@ -544,15 +592,16 @@ class BanApp(tk.Tk):
 
     def _set_bind(self, action, value):
         self.binds[action] = value
-        self.bind_vars[action].set(value or "(none)")
+        self.bind_vars[action].set(value["label"] if value else "(none)")
         self._collect()
         save_config(self.cfg)
         if self.hotkeys:
             self.hotkeys.set_binds(self._binds_for_manager())
-        self.status.set(f"{ACTIONS[action][0]} bind: {value or 'cleared'}")
+        self.status.set(f"{ACTIONS[action][0]} bind: "
+                        + (value["label"] if value else "cleared"))
 
     def clear_bind(self, action):
-        self._set_bind(action, "")
+        self._set_bind(action, None)
 
     def toggle_autostart(self):
         try:
