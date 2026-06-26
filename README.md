@@ -8,7 +8,7 @@ A tiny Windows app that lets you **ban, kick, mute, or deafen** a pre-set person
 2. Under the latest release, click **DiscordTargetKeys.exe** to download it.
 3. Double-click the downloaded file to open the app.
 
-> **Windows may show a blue "Windows protected your PC" warning.** This is normal for small free apps that aren't signed by a big company — it doesn't mean anything is wrong. Click **More info**, then **Run anyway**.
+> **Windows may show a "Windows protected your PC" warning.** This is normal for small free apps that aren't signed by a big company — it doesn't mean anything is wrong. Click **More info**, then **Run anyway**.
 
 That's it for installing. The first time you open it, follow the in-app **"First-time setup"** button, which walks you through the steps below.
 
